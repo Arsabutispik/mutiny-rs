@@ -1,5 +1,7 @@
 use serde::de::DeserializeOwned;
+use serde_json::Value;
 use thiserror::Error;
+
 #[derive(Debug, Error)]
 pub enum HttpError {
     #[error("Unauthorized")]
@@ -37,7 +39,7 @@ impl Http {
             _ => Err(HttpError::Other(status.to_string())),
         }
     }
-    pub async fn post<T: DeserializeOwned>(&self, path: &str, body: &serde_json::Value) -> Result<String, HttpError> {
+    pub async fn post<T: DeserializeOwned>(&self, path: &str, body: &Value) -> Result<String, HttpError> {
         let url = format!("{}{}", self.base_url, path);
         let response = self.client
             .post(&url)

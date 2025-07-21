@@ -1,12 +1,12 @@
 use std::{sync::Arc, time::{SystemTime, UNIX_EPOCH}};
-
+use std::time::Duration;
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
 use serde_json::json;
 use tokio::{net::TcpStream, spawn, sync::Mutex};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
 use tokio_tungstenite::tungstenite::Utf8Bytes;
-use crate::{client::EventHandler, context::Context, model::ready::User};
-
+use crate::{client::EventHandler, context::Context, model::user::User};
+use crate::{model::{message::Message as ChatMessage, ready::Ready}};
 pub struct WebSocket {
     writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
@@ -44,57 +44,107 @@ impl WebSocket {
         self
     }
 
-    pub async fn handler(reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
-                         writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
-                         token: Arc<String>,
-                         event: Arc<Box<dyn EventHandler>>)
-    {
+    pub async fn handler(
+        reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
+        writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
+        token: Arc<String>,
+        event: Arc<Box<dyn EventHandler>>,
+    ) {
         let mut bot: Option<User> = None;
-        loop {
-            while let Some(message) = reader.lock().await.next().await {
-                match message {
-                    Ok(message) => {
-                        if message.is_text() {
-                            let json: serde_json::Value = serde_json::from_str(&message.to_string()).unwrap();
+        let writer_clone = writer.clone();
+        let token_clone = token.clone();
+        let event_clone = event.clone();
 
-                            if let Some(_type) = json["type"].as_str() {
-                                if _type == "Ready" {
-                                    let ready: crate::model::ready::Ready  = serde_json::from_value(json.clone()).unwrap();
-                                    bot = Some(ready.users[0].clone());
-                                    writer.lock().await.send(Message::Text(Utf8Bytes::from(json!({
-                                    "type": "SetStatus",
-                                    "status": "Online"
-                                    }).to_string()))).await.unwrap();
-                                    let context = Context::new(&token, &message.to_string(), writer.clone(), bot.clone().unwrap());
-                                    event.ready(context).await
+        // Spawn heartbeat
+        spawn(async move {
+            loop {
+                tokio::time::sleep(Duration::from_secs(30)).await;
+
+                let ping = json!({
+                "type": "Ping",
+                "timestamp": SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64
+            });
+
+                if let Err(e) = writer_clone.lock().await.send(Message::Text(ping.to_string().into())).await {
+                    eprintln!("Heartbeat failed: {:?}", e);
+                    break;
+                }
+            }
+        });
+
+        // Read loop
+        loop {
+            let msg_opt = reader.lock().await.next().await;
+
+            let message = match msg_opt {
+                Some(Ok(msg)) => msg,
+                Some(Err(err)) => {
+                    eprintln!("WebSocket error: {:?}", err);
+                    break;
+                }
+                None => break,
+            };
+
+            if message.is_text() {
+                let raw_text = message.to_text().unwrap_or("");
+                let json_value: serde_json::Value = match serde_json::from_str(raw_text) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        eprintln!("Invalid JSON: {:?}\nRaw: {}", e, raw_text);
+                        continue;
+                    }
+                };
+
+                if let Some(event_type) = json_value["type"].as_str() {
+                    match event_type {
+                        "Ready" => {
+                            let ready: Ready = match serde_json::from_value(json_value.clone()) {
+                                Ok(v) => v,
+                                Err(e) => {
+                                    eprintln!("Failed to parse Ready: {}", e);
+                                    continue;
                                 }
+                            };
+
+                            bot = Some(ready.users[0].clone());
+
+                            let status_msg = json!({
+                            "type": "SetStatus",
+                            "status": "Online"
+                        });
+
+                            if let Err(e) = writer.lock().await.send(Message::Text(status_msg.to_string().into())).await {
+                                eprintln!("Failed to send SetStatus: {}", e);
                             }
 
-                            if let Some(ref bot) = bot {
-                                let context = Context::new(&token, &message.to_string(), writer.clone(), bot.clone());
+                            let context = Context::new(&token, raw_text, writer.clone(), bot.clone().unwrap());
+                            event.ready(context).await;
+                        }
 
-                                match json["type"].as_str() {
-                                    Some("Message") => {
-                                        let message: Result<crate::model::message::Message, serde_json::Error> = serde_json::from_value(json);
+                        "Message" => {
+                            if let Some(ref bot_user) = bot {
+                                let context = Context::new(&token_clone, raw_text, writer.clone(), bot_user.clone());
 
-                                        if let Ok(message) = message {
-                                            event.on_message(context.to_owned(), message).await;
-                                        }
-                                    },
-                                    Some(&_) => {},
-                                    None => {},
+                                match serde_json::from_value::<ChatMessage>(json_value) {
+                                    Ok(msg) => {
+                                        println!("Received message: {:?}", msg);
+                                        event_clone.message(context, msg).await;
+                                    }
+                                    Err(e) => {
+                                        eprintln!("Failed to parse Message: {}", e);
+                                    }
                                 }
                             }
                         }
-                        writer.lock().await.send(Message::Text(Utf8Bytes::from(json!({
-                            "type": "Ping",
-                            "timestamp": SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64
-                        }).to_string()))).await.unwrap();
-                    }
-                    Err(e) => {
-                        return eprintln!("{:?}", e);
+
+                        _ => {
+                            // Handle other event types if needed
+                        }
                     }
                 }
+            } else if message.is_close() {
+                println!("Received close frame, shutting down.");
+                break;
             }
         }
     }

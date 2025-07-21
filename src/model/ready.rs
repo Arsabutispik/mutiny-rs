@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::user::{Bot, Metadata};
+use super::user::{Avatar, Bot, Metadata, Relation, User};
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -8,18 +8,20 @@ pub struct Ready {
     #[serde(rename = "type")]
     pub _type: String,
     pub channels: Vec<Channel>,
-    pub members: Vec<Members>,
+    pub members: Vec<Member>,
     pub servers: Vec<serde_json::Value>, // Error
     pub users: Vec<User>,
 }
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Members {
-    pub _id: Member
-}
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Member {
+pub struct MemberId {
     pub server: String,
     pub user: String
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Member {
+    pub _id: MemberId,
+    pub joined_at: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -37,34 +39,13 @@ pub struct Channel {
     pub last_message: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct User {
-    pub avatar: Option<Avatar>,
-    pub badges: Option<Vec<String>>,
-    pub online: bool,
-    pub relationship: Option<String>,
-    pub status: Option<Status>,
-    pub username: String,
-    pub _id: String,
-    pub flags: Option<usize>,
-    pub bot: Option<Bot>,
-}
 
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Avatar {
-    pub content_type: String,
-    pub filename: String,
-    pub metadata: Metadata,
-    pub size: usize,
-    pub tag: String,
-    pub _id: String
-}
 
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Status {
-    pub text: String,
+    pub text: Option<String>,
     pub presence: String
 }
 

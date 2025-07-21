@@ -3,7 +3,7 @@ use crate::{context::Context, model::message::Message, websocket::WebSocket};
 #[async_trait::async_trait]
 pub trait EventHandler: Send + Sync + 'static {
     async fn ready(&self, ctx: Context);
-    async fn on_message(&self, ctx: Context, message: Message);
+    async fn message(&self, ctx: Context, message: Message);
 }
 
 
