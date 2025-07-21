@@ -1,0 +1,11 @@
+[package]
+name = "mutiny"
+version = "0.1.0"
+edition = "2024"
+authors = ["İspik"]
+description = "A Rust API wrapper for the Revolt chat platform."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/arsabutispik/mutiny"
+keywords = ["revolt", "chat", "api", "sdk", "rust"]
+categories = ["api-bindings", "web-programming", "asynchronous"]
+readme = "README.md"
