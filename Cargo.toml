@@ -1,6 +1,6 @@
 [package]
 name = "mutiny-rs"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 authors = ["İspik"]
 description = "A Rust API wrapper for the Revolt chat platform."
