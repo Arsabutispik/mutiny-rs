@@ -9,3 +9,14 @@ repository = "https://github.com/arsabutispik/mutiny-rs"
 keywords = ["revolt", "chat", "api", "sdk", "rust"]
 categories = ["api-bindings", "web-programming", "asynchronous"]
 readme = "README.md"
+
+[dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+reqwest = { version = "0.12.22", features = ["json", "rustls-tls"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.141"
+tokio-tungstenite = { version = "0.27.0", features = ["native-tls"] }
+ulid = "1.2.1"
+futures-util = "0.3.31"
+thiserror = "2.0.12"
+async-trait = "0.1.88"
