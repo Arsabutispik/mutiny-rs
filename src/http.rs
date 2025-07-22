@@ -10,6 +10,8 @@ pub enum HttpError {
     NotFound,
     #[error("Server Error")]
     ServerError,
+    #[error("Forbidden")]
+    Forbidden,
     #[error("Reqwest error: {0}")]
     Reqwest(#[from] reqwest::Error),
     #[error("Other error: {0}")]
@@ -30,60 +32,120 @@ impl Http {
             token,
         }
     }
-    fn status(status: reqwest::StatusCode) -> Result<(), HttpError> {
+    fn status_to_error(status: reqwest::StatusCode) -> HttpError {
         match status {
-            reqwest::StatusCode::UNAUTHORIZED => Err(HttpError::Unauthorized),
-            reqwest::StatusCode::NOT_FOUND => Err(HttpError::NotFound),
-            s if s.is_server_error() => Err(HttpError::ServerError),
-            s if s.is_success() => Ok(()),
-            _ => Err(HttpError::Other(status.to_string())),
+            reqwest::StatusCode::UNAUTHORIZED => HttpError::Unauthorized,
+            reqwest::StatusCode::NOT_FOUND => HttpError::NotFound,
+            reqwest::StatusCode::FORBIDDEN => HttpError::Forbidden,
+            s if s.is_server_error() => HttpError::ServerError,
+            _ => HttpError::Other(format!("Unexpected status code: {}", status)),
         }
     }
-    pub async fn post<T: DeserializeOwned>(&self, path: &str, body: &Value) -> Result<String, HttpError> {
+    pub async fn post<T: DeserializeOwned>(&self, path: &str, body: &Value) -> Result<T, HttpError> {
         let url = format!("{}{}", self.base_url, path);
+
         let response = self.client
             .post(&url)
             .header(reqwest::header::CONTENT_TYPE, "application/json")
             .header("x-bot-token", &self.token)
-            .body(body.to_string())
+            .json(body)
             .send()
-            .await?;
-        Self::status(response.status())?;
-        Ok(response.json().await?)
+            .await
+            .map_err(HttpError::from)?;
+
+        let status = response.status();
+        let text = response
+            .text()
+            .await
+            .map_err(|e| HttpError::Other(format!("Failed to read body: {}", e)))?;
+
+        Self::status_to_error(status);
+
+        let parsed = serde_json::from_str::<T>(&text)
+            .map_err(|e| HttpError::Other(format!("Failed to parse JSON: {}. Body: {}", e, text)))?;
+
+        Ok(parsed)
     }
+    pub async fn post_empty(&self, path: &str) -> Result<(), HttpError> {
+        let url = format!("{}{}", self.base_url, path);
+
+        let response = self.client
+            .post(&url)
+            .header("x-bot-token", &self.token)
+            .send()
+            .await
+            .map_err(HttpError::from)?;
+
+        let status = response.status();
+
+        Self::status_to_error(status);
+
+        Ok(())
+    }
+
     pub async fn get<T: DeserializeOwned>(&self, path: &str) -> Result<T, HttpError> {
         let url = format!("{}{}", self.base_url, path);
+
         let response = self.client
             .get(&url)
             .header(reqwest::header::ACCEPT, "application/json")
             .header("x-bot-token", &self.token)
             .send()
-            .await?;
-        Self::status(response.status())?;
-        Ok(response.json().await?)
+            .await
+            .map_err(HttpError::from)?;
+
+        let status = response.status();
+        let text = response
+            .text()
+            .await
+            .map_err(|e| HttpError::Other(format!("Failed to read body: {}", e)))?;
+
+        Self::status_to_error(status);
+
+        let parsed = serde_json::from_str::<T>(&text)
+            .map_err(|e| HttpError::Other(format!("Failed to parse JSON: {}. Body: {}", e, text)))?;
+
+        Ok(parsed)
     }
-    pub async fn delete<T: DeserializeOwned>(&self, path: &str) -> Result<String, HttpError> {
+    pub async fn delete(&self, path: &str) -> Result<(), HttpError> {
         let url = format!("{}{}", self.base_url, path);
+
         let response = self.client
             .delete(&url)
             .header("x-bot-token", &self.token)
             .send()
-            .await?
-            .error_for_status()?;
-        Self::status(response.status())?;
-        Ok(response.json().await?)
+            .await
+            .map_err(HttpError::from)?;
+
+        let status = response.status();
+        Self::status_to_error(status);
+
+        Ok(())
     }
-    pub async fn patch<T: DeserializeOwned>(&self, path: &str, body: &str) -> Result<String, HttpError> {
+
+    pub async fn patch<T: DeserializeOwned>(&self, path: &str, body: &Value) -> Result<T, HttpError> {
         let url = format!("{}{}", self.base_url, path);
         let response = self.client
             .patch(&url)
             .header(reqwest::header::CONTENT_TYPE, "application/json")
             .header("x-bot-token", &self.token)
-            .body(body.to_string())
+            .json(body)
             .send()
-            .await?
-            .error_for_status()?;
-        Self::status(response.status())?;
-        Ok(response.json().await?)
+            .await
+            .map_err(HttpError::from)?;
+
+        let status = response.status();
+
+        let text = response
+            .text()
+            .await
+            .map_err(|e| HttpError::Other(format!("Failed to read body: {}", e)))?;
+
+        Self::status_to_error(status);
+
+        let parsed = serde_json::from_str::<T>(&text)
+            .map_err(|e| HttpError::Other(format!("Failed to parse JSON: {}. Body: {}", e, text)))?;
+
+        Ok(parsed)
     }
 }

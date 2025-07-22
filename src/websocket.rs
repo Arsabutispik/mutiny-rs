@@ -127,7 +127,6 @@ impl WebSocket {
 
                                 match serde_json::from_value::<ChatMessage>(json_value) {
                                     Ok(msg) => {
-                                        println!("Received message: {:?}", msg);
                                         event_clone.message(context, msg).await;
                                     }
                                     Err(e) => {
