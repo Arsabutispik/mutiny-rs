@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use crate::context::Context;
 use crate::http::HttpError;
-use crate::model::message::{EditMessageBuilder, Embed, Message};
+use crate::model::message::{Embed, Message};
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct EditMessagePayload {
@@ -9,7 +9,12 @@ pub struct EditMessagePayload {
     pub embeds: Option<Vec<Embed>>,
     // add other editable fields here if needed
 }
-
+pub struct EditMessageBuilder<'a> {
+    pub(crate) message: &'a Message,
+    pub(crate) ctx: &'a Context,
+    pub(crate) content: Option<String>,
+    pub(crate) embeds: Option<Vec<Embed>>,
+}
 
 
 impl<'a> EditMessageBuilder<'a> {

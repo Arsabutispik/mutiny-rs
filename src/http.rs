@@ -1,4 +1,5 @@
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 use serde_json::Value;
 use thiserror::Error;
 
@@ -41,7 +42,11 @@ impl Http {
             _ => HttpError::Other(format!("Unexpected status code: {}", status)),
         }
     }
-    pub async fn post<T: DeserializeOwned>(&self, path: &str, body: &Value) -> Result<T, HttpError> {
+    pub async fn post<T: DeserializeOwned, B: Serialize>(
+        &self,
+        path: &str,
+        body: &B
+    ) -> Result<T, HttpError> {
         let url = format!("{}{}", self.base_url, path);
 
         let response = self.client
@@ -53,19 +58,14 @@ impl Http {
             .await
             .map_err(HttpError::from)?;
 
-        let status = response.status();
-        let text = response
-            .text()
+        Self::status_to_error(response.status());
+
+        response
+            .json::<T>()
             .await
-            .map_err(|e| HttpError::Other(format!("Failed to read body: {}", e)))?;
-
-        Self::status_to_error(status);
-
-        let parsed = serde_json::from_str::<T>(&text)
-            .map_err(|e| HttpError::Other(format!("Failed to parse JSON: {}. Body: {}", e, text)))?;
-
-        Ok(parsed)
+            .map_err(|e| HttpError::Other(format!("Failed to parse JSON: {}", e)))
     }
+
     pub async fn post_empty(&self, path: &str) -> Result<(), HttpError> {
         let url = format!("{}{}", self.base_url, path);
 
@@ -83,13 +83,18 @@ impl Http {
         Ok(())
     }
 
-    pub async fn get<T: DeserializeOwned>(&self, path: &str) -> Result<T, HttpError> {
+    pub async fn get<T: DeserializeOwned, Q: Serialize>(&self, path: &str, query: Option<&Q>) -> Result<T, HttpError> {
         let url = format!("{}{}", self.base_url, path);
-
-        let response = self.client
+        let mut request = self.client
             .get(&url)
             .header(reqwest::header::ACCEPT, "application/json")
-            .header("x-bot-token", &self.token)
+            .header("x-bot-token", &self.token);
+
+        if let Some(q) = query {
+            request = request.query(q);
+        }
+
+        let response = request
             .send()
             .await
             .map_err(HttpError::from)?;
@@ -101,7 +106,11 @@ impl Http {
             .map_err(|e| HttpError::Other(format!("Failed to read body: {}", e)))?;
 
         Self::status_to_error(status);
-
+        /* // Uncomment this block if you want to pretty-print the JSON response
+        let pretty = serde_json::from_str::<serde_json::Value>(&text)
+            .map(|v| serde_json::to_string_pretty(&v).unwrap_or(text.clone()))
+            .unwrap_or(text.clone());
+        println!("Pretty JSON:\n{}", pretty);*/
         let parsed = serde_json::from_str::<T>(&text)
             .map_err(|e| HttpError::Other(format!("Failed to parse JSON: {}. Body: {}", e, text)))?;
 
