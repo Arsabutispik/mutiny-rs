@@ -1,6 +1,4 @@
-use std::fmt;
-use serde::{Serialize, Deserialize, Deserializer, de};
-use serde::de::{SeqAccess, Visitor};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct User {
@@ -9,8 +7,7 @@ pub struct User {
     pub discriminator: String,
     pub display_name: Option<String>,
     pub avatar: Option<Avatar>,
-    #[serde(default, deserialize_with = "deserialize_relations")]
-    pub relationship: Option<Vec<Relation>>,
+    pub relationship: Option<RelationshipStatus>,
     pub badges: Option<u8>,
     pub status: Option<crate::model::ready::Status>,
     pub flags: Option<usize>,
@@ -46,10 +43,9 @@ pub struct FetchUser {
     pub _id: String,
     pub username: String,
     pub avatar: Option<Avatar>,
-    pub relations: Option<Vec<Relation>>,
+    pub relationship: Option<RelationshipStatus>,
     pub badges: usize,
     pub status: Option<Status>,
-    pub relationship: String,
     pub online: bool,
     pub flags: Option<usize>,
     pub bot: Option<Bot>
@@ -78,61 +74,23 @@ pub struct Avatar {
     pub server_id: Option<String>,
     pub object_id: Option<String>,
 }
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(untagged)]
-pub enum Relation {
-Object { _id: String, status: String },
-StatusOnly(String),
-}
-fn deserialize_relations<'de, D>(deserializer: D) -> Result<Option<Vec<Relation>>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    struct RelationsVisitor;
-
-    impl<'de> Visitor<'de> for RelationsVisitor {
-        type Value = Option<Vec<Relation>>;
-
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter.write_str("null, a string, or a sequence of relations")
-        }
-
-        fn visit_none<E>(self) -> Result<Self::Value, E> {
-            Ok(None)
-        }
-
-        fn visit_unit<E>(self) -> Result<Self::Value, E> {
-            Ok(None)
-        }
-
-        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-        where
-            E: de::Error,
-        {
-            // Single string treated as one Relation::StatusOnly
-            Ok(Some(vec![Relation::StatusOnly(v.to_string())]))
-        }
-
-        fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
-        where
-            E: de::Error,
-        {
-            // Same as visit_str
-            Ok(Some(vec![Relation::StatusOnly(v)]))
-        }
-
-        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-        where
-            A: SeqAccess<'de>,
-        {
-            let mut relations = Vec::new();
-
-            while let Some(elem) = seq.next_element::<Relation>()? {
-                relations.push(elem);
-            }
-            Ok(Some(relations))
-        }
-    }
-
-    deserializer.deserialize_any(RelationsVisitor)
+/// User's relationship with another user (or themselves)
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Clone)]
+pub enum RelationshipStatus {
+    /// No relationship with other user
+    #[default]
+    None,
+    /// Other user is us
+    User,
+    /// Friends with the other user
+    Friend,
+    /// Pending friend request to user
+    Outgoing,
+    /// Incoming friend request from user
+    Incoming,
+    /// Blocked this user
+    Blocked,
+    /// Blocked by this user
+    BlockedOther,
 }

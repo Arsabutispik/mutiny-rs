@@ -7,7 +7,7 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungsten
 use tokio_tungstenite::tungstenite::Utf8Bytes;
 use crate::{client::EventHandler, context::Context, model::user::User};
 use crate::{model::{message::Message as ChatMessage, ready::Ready}};
-use crate::model::user::Relation;
+use crate::model::user::{RelationshipStatus};
 
 pub struct WebSocket {
     writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
@@ -109,17 +109,10 @@ impl WebSocket {
                             };
                             bot = Some(ready.users
                                            .iter()
-                                           .find(|user| {
+                                           .find(|user|
                                                user.relationship
-                                                   .as_ref()
-                                                   .map(|rels| {
-                                                       rels.iter().any(|rel| match rel {
-                                                           Relation::Object { status, .. } => status == "User",
-                                                           Relation::StatusOnly(s) => s == "User",
-                                                       })
-                                                   })
-                                                   .unwrap_or(false)
-                                           })
+                                                    == Some(RelationshipStatus::User)
+                                           )
                                            .cloned()
                                            .expect("Bot user not found"));
 
