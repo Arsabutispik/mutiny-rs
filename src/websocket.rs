@@ -7,6 +7,8 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungsten
 use tokio_tungstenite::tungstenite::Utf8Bytes;
 use crate::{client::EventHandler, context::Context, model::user::User};
 use crate::{model::{message::Message as ChatMessage, ready::Ready}};
+use crate::model::user::Relation;
+
 pub struct WebSocket {
     writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
@@ -98,6 +100,7 @@ impl WebSocket {
                 if let Some(event_type) = json_value["type"].as_str() {
                     match event_type {
                         "Ready" => {
+                            println!("{:#?}", json_value);
                             let ready: Ready = match serde_json::from_value(json_value.clone()) {
                                 Ok(v) => v,
                                 Err(e) => {
@@ -105,8 +108,22 @@ impl WebSocket {
                                     continue;
                                 }
                             };
-
-                            bot = Some(ready.users[0].clone());
+                            println!("{:#?}", ready.users);
+                            bot = Some(ready.users
+                                           .iter()
+                                           .find(|user| {
+                                               user.relationship
+                                                   .as_ref()
+                                                   .map(|rels| {
+                                                       rels.iter().any(|rel| match rel {
+                                                           Relation::Object { status, .. } => status == "User",
+                                                           Relation::StatusOnly(s) => s == "User",
+                                                       })
+                                                   })
+                                                   .unwrap_or(false)
+                                           })
+                                           .cloned()
+                                           .expect("Bot user not found"));
 
                             let status_msg = json!({
                             "type": "SetStatus",

@@ -95,4 +95,19 @@ impl ChannelId {
             ctx,
         }
     }
+    pub async fn fetch_message(&self, ctx: &Context, message_id: &str) -> Result<Message, HttpError> {
+        let url = format!("/channels/{}/messages/{}", self.0, message_id);
+        ctx.http.get::<Message, ()>(&url, None).await
+    }
+    pub async fn bulk_delete(&self, ctx: &Context, messages: Vec<Message>) -> Result<(), HttpError> {
+        if messages.is_empty() {
+            return Ok(());
+        }
+        let url = format!("/channels/{}/messages/bulk", self.0);
+        let ids: Vec<String> = messages.into_iter().map(|m| m._id).collect();
+        let body = serde_json::json!({ "ids": ids });
+
+        ctx.http.delete(url, Some(body)).await
+            .map_err(|e| HttpError::from(e))
+    }
 }

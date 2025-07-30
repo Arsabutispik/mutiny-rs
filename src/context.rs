@@ -7,7 +7,7 @@ use tokio::sync::Mutex;
 use tokio_tungstenite::tungstenite::Message as WsMessage;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Context {
     pub token: String,
     pub http: http::Http,

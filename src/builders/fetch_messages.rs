@@ -117,6 +117,5 @@ impl<'a> FetchMessagesBuilder<'a> {
         };
 
         Ok(messages)
-
     }
 }

@@ -1,4 +1,6 @@
-use serde::{Serialize, Deserialize};
+use std::fmt;
+use serde::{Serialize, Deserialize, Deserializer, de};
+use serde::de::{SeqAccess, Visitor};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct User {
@@ -7,7 +9,8 @@ pub struct User {
     pub discriminator: String,
     pub display_name: Option<String>,
     pub avatar: Option<Avatar>,
-    pub relations: Option<Vec<Relation>>,
+    #[serde(default, deserialize_with = "deserialize_relations")]
+    pub relationship: Option<Vec<Relation>>,
     pub badges: Option<u8>,
     pub status: Option<crate::model::ready::Status>,
     pub flags: Option<usize>,
@@ -76,7 +79,60 @@ pub struct Avatar {
     pub object_id: Option<String>,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Relation {
-    pub status: String,
-    pub _id: String,
+#[serde(untagged)]
+pub enum Relation {
+Object { _id: String, status: String },
+StatusOnly(String),
+}
+fn deserialize_relations<'de, D>(deserializer: D) -> Result<Option<Vec<Relation>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct RelationsVisitor;
+
+    impl<'de> Visitor<'de> for RelationsVisitor {
+        type Value = Option<Vec<Relation>>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("null, a string, or a sequence of relations")
+        }
+
+        fn visit_none<E>(self) -> Result<Self::Value, E> {
+            Ok(None)
+        }
+
+        fn visit_unit<E>(self) -> Result<Self::Value, E> {
+            Ok(None)
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            // Single string treated as one Relation::StatusOnly
+            Ok(Some(vec![Relation::StatusOnly(v.to_string())]))
+        }
+
+        fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            // Same as visit_str
+            Ok(Some(vec![Relation::StatusOnly(v)]))
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: SeqAccess<'de>,
+        {
+            let mut relations = Vec::new();
+
+            while let Some(elem) = seq.next_element::<Relation>()? {
+                relations.push(elem);
+            }
+            Ok(Some(relations))
+        }
+    }
+
+    deserializer.deserialize_any(RelationsVisitor)
 }

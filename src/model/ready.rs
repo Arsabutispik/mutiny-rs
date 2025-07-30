@@ -1,7 +1,6 @@
+use super::user::{Metadata, User};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-use super::user::{Avatar, Bot, Metadata, Relation, User};
-use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Ready {
@@ -28,8 +27,8 @@ pub struct Member {
 pub struct Channel {
     pub channel_type: String,
     pub _id: String,
-    pub server: String,
-    pub name: String,
+    pub server: Option<String>,
+    pub name: Option<String>,
     pub description: Option<String>,
     pub icon: Option<Icon>,
     pub role_permissions: Option<HashMap<String, usize>>,

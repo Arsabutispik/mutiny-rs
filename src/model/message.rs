@@ -86,7 +86,7 @@ pub struct EditMessagePayload {
     pub embeds: Option<Vec<Embed>>,
 }
 impl Message {
-    pub fn reply<'a>(&'a self, ctx: &'a Context) -> PendingSend<'a> {
+    pub async fn reply<'a>(&'a self, ctx: &'a Context) -> PendingSend<'a> {
         self.channel.create_message(ctx).replies(vec![
             Replies {
                 id: self._id.clone(),
@@ -97,7 +97,7 @@ impl Message {
     }
     pub async fn delete(&self, ctx: &Context) -> Result<(), String> {
         let url = format!("/channels/{}/messages/{}", self.channel, self._id);
-        let response = ctx.http.delete(&url).await.map_err(|e| HttpError::from(e));
+        let response = ctx.http.delete(url, None).await.map_err(|e| HttpError::from(e));
         match response {
             Ok(_) => Ok(()),
             Err(e) => Err(format!("Failed to delete message: {}", e)),
@@ -113,7 +113,7 @@ impl Message {
     }
     pub async fn unpin(&self, ctx: &Context) -> Result<(), HttpError> {
         let url = format!("/channels/{}/pins/{}", self.channel, self._id);
-        let response = ctx.http.delete(&url).await;
+        let response = ctx.http.delete(url, None).await;
         match response {
             Ok(_) => Ok(()),
             Err(e) => Err(HttpError::from(e)),
@@ -126,5 +126,8 @@ impl Message {
             content: None,
             embeds: None,
         }
+    }
+    pub async fn fetch_message(&self, ctx: &Context) -> Result<Message, HttpError> {
+        self.channel.fetch_message(ctx, &self._id).await
     }
 }
