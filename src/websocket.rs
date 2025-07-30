@@ -100,7 +100,6 @@ impl WebSocket {
                 if let Some(event_type) = json_value["type"].as_str() {
                     match event_type {
                         "Ready" => {
-                            println!("{:#?}", json_value);
                             let ready: Ready = match serde_json::from_value(json_value.clone()) {
                                 Ok(v) => v,
                                 Err(e) => {
@@ -108,7 +107,6 @@ impl WebSocket {
                                     continue;
                                 }
                             };
-                            println!("{:#?}", ready.users);
                             bot = Some(ready.users
                                            .iter()
                                            .find(|user| {
