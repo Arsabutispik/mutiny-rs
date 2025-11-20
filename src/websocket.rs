@@ -17,7 +17,7 @@ pub struct WebSocket {
 
 impl WebSocket {
     pub async fn new(handler: Box<dyn EventHandler>) -> WebSocket {
-        let (ws_stream, _) = connect_async("wss://ws.revolt.chat").await.unwrap();
+        let (ws_stream, _) = connect_async("wss://ws.revolt.chat").await.expect("Failed to connect to websocket");
         let (writer, reader) = ws_stream.split();
 
         WebSocket {

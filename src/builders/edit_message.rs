@@ -1,19 +1,18 @@
-use serde::{Serialize, Deserialize};
+use crate::builders::create_embed::SendableEmbed;
 use crate::context::Context;
 use crate::http::HttpError;
-use crate::model::message::{Embed, Message};
-
-#[derive(Serialize, Deserialize, Default)]
+use crate::model::message::Message;
+use serde::Serialize;
+#[derive(Serialize, Default)]
 pub struct EditMessagePayload {
     pub content: Option<String>,
-    pub embeds: Option<Vec<Embed>>,
-    // add other editable fields here if needed
+    pub embeds: Option<Vec<SendableEmbed>>,
 }
 pub struct EditMessageBuilder<'a> {
     pub(crate) message: &'a Message,
     pub(crate) ctx: &'a Context,
     pub(crate) content: Option<String>,
-    pub(crate) embeds: Option<Vec<Embed>>,
+    pub(crate) embeds: Option<Vec<SendableEmbed>>,
 }
 
 
@@ -32,13 +31,13 @@ impl<'a> EditMessageBuilder<'a> {
         self
     }
 
-    pub fn embeds(mut self, embeds: Vec<Embed>) -> Self {
+    pub fn embeds(mut self, embeds: Vec<SendableEmbed>) -> Self {
         self.embeds = Some(embeds);
         self
     }
 
     pub async fn send(self) -> Result<Message, HttpError> {
-        let url = format!("/channels/{}/messages/{}", self.message.channel, self.message._id);
+        let url = format!("/channels/{}/messages/{}", self.message.channel, self.message.id);
 
         let payload = EditMessagePayload {
             content: self.content,

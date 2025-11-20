@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use crate::context::Context;
 use crate::http::HttpError;
-use crate::model::channel::ChannelId;
 use crate::model::message::Message;
 use crate::model::ready::Member;
 use crate::model::user::User;
@@ -14,7 +13,7 @@ pub struct FetchMessagesBuilder<'a> {
     pub(crate) sort: Option<Sort>,
     pub(crate) nearby: Option<String>,
     pub(crate) include_users: Option<bool>,
-    pub(crate) channel_id: ChannelId,
+    pub(crate) channel_id: String,
     pub(crate) ctx: &'a Context,
 }
 #[derive(Serialize)]

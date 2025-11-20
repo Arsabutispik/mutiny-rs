@@ -1,60 +1,66 @@
-use crate::model::message::Embed;
+use serde::Serialize;
 
-pub struct EmbedBuilder(Embed);
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct SendableEmbed {
+    #[serde(rename = "type")]
+    pub kind: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub colour: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon_url: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub media: Option<String>,
+}
+
+pub struct EmbedBuilder(SendableEmbed);
+
 impl EmbedBuilder {
     pub fn new() -> Self {
-        Self::default()
+        Self(SendableEmbed {
+            kind: "Website".to_string(),
+            ..Default::default()
+        })
     }
-    pub fn build(self) -> Embed {
-        self.0
-    }
-    pub fn set_icon(mut self, icon_url: impl Into<String>) -> Self {
-        self.0.icon_url = Some(icon_url.into());
-        self
-    }
-    pub fn set_url(mut self, url: impl Into<String>) -> Self {
-        self.0.url = Some(url.into());
-        self
-    }
-    pub fn set_title(mut self, title: impl Into<String>) -> Self {
+
+    pub fn title(mut self, title: impl Into<String>) -> Self {
         self.0.title = Some(title.into());
         self
     }
-    pub fn set_description(mut self, description: impl Into<String>) -> Self {
-        self.0.description = Some(description.into());
+
+    pub fn description(mut self, desc: impl Into<String>) -> Self {
+        self.0.description = Some(desc.into());
         self
     }
-    pub fn set_media(mut self, media: impl Into<String>) -> Self {
-        self.0.media = Some(media.into());
+
+    pub fn color(mut self, color: impl Into<String>) -> Self {
+        self.0.colour = Some(color.into());
         self
     }
-    pub fn set_colour(mut self, colour: impl Into<String>) -> Self {
-        self.0.colour = Some(colour.into());
+
+    pub fn icon(mut self, url: impl Into<String>) -> Self {
+        self.0.icon_url = Some(url.into());
         self
+    }
+
+    pub fn build(self) -> SendableEmbed {
+        self.0
     }
 }
 
 impl Default for EmbedBuilder {
-    fn default() -> EmbedBuilder {
-        Self(Embed {
-            icon_url: None,
-            url: None,
-            title: None,
-            description: None,
-            media: None,
-            colour: None,
-        })
-    }
-}
-impl From<Embed> for EmbedBuilder {
-    fn from(embed: Embed) -> Self {
-        Self(Embed {
-            icon_url: embed.icon_url,
-            url: embed.url,
-            title: embed.title,
-            description: embed.description,
-            media: embed.media,
-            colour: embed.colour,
-        })
+    fn default() -> Self {
+        Self::new()
     }
 }
