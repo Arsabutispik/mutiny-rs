@@ -47,6 +47,6 @@ impl<'a> EditMessageBuilder<'a> {
         let payload_json = serde_json::to_value(&payload)
             .map_err(|e| HttpError::Other(format!("Failed to serialize payload: {}", e)))?;
 
-        self.ctx.http.patch::<Message>(&url, &payload_json).await
+        self.ctx.http.patch(&url, &payload_json).await
     }
 }

@@ -88,7 +88,7 @@ impl<'a> FetchMessagesBuilder<'a> {
 
         let url = format!("/channels/{}/messages", self.channel_id);
 
-        let result: MessageFetchResult = self.ctx.http.get(&url, Some(&query)).await?;
+        let result: MessageFetchResult = self.ctx.http.get_with_query(&url, &query).await?;
 
         let messages = match result {
             MessageFetchResult::MessagesOnly(list) => list,
@@ -96,7 +96,7 @@ impl<'a> FetchMessagesBuilder<'a> {
                 let mut messages = data.messages;
 
                 let users_map: HashMap<String, User> = data.users.into_iter()
-                    .map(|user| (user._id.clone(), user))
+                    .map(|user| (user.id.clone(), user))
                     .collect();
 
                 let members_map: HashMap<String, Member> = data.members.into_iter()

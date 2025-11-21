@@ -1,12 +1,12 @@
 [package]
 name = "mutiny-rs"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 authors = ["İspik"]
-description = "A Rust API wrapper for the Revolt chat platform."
+description = "A Rust API wrapper for the Stoat chat platform."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/arsabutispik/mutiny-rs"
-keywords = ["revolt", "chat", "api", "sdk", "rust"]
+keywords = ["stoat", "chat", "api", "sdk", "rust"]
 categories = ["api-bindings", "web-programming", "asynchronous"]
 readme = "README.md"
 
@@ -15,7 +15,8 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 reqwest = { version = "0.12.22", features = ["json", "rustls-tls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.141"
-tokio-tungstenite = { version = "0.27.0", features = ["native-tls"] }
+tokio-tungstenite = { version = "0.28.0", features = ["native-tls"] }
 futures-util = "0.3.31"
 thiserror = "2.0.12"
 async-trait = "0.1.88"
+moka = { version = "0.12", features = ["future"] }

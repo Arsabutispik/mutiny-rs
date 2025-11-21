@@ -1,22 +1,24 @@
-use std::{collections::HashMap};
-use serde::{Serialize, Deserialize};
-use crate::builders::create_embed::SendableEmbed;
 use crate::builders::edit_message::EditMessageBuilder;
 use crate::context::Context;
 use crate::http::HttpError;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use crate::model::channel::{ChannelId, PendingSend};
-use crate::model::ready::{Member};
+use crate::model::embed::Embed;
+use crate::model::ready::Member;
 use crate::model::user::User;
+
+#[derive(Debug, Default)]
 pub struct SendMessage {
     pub content: String,
     pub nonce: Option<String>,
     pub attachments: Vec<String>,
-    pub replies: HashMap<String, bool>
+    pub replies: HashMap<String, bool>,
+    pub embeds: Vec<Embed>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Message {
-    //Rename _id to id
     #[serde(rename = "_id")]
     pub id: String,
     pub nonce: Option<String>,
@@ -24,7 +26,6 @@ pub struct Message {
     pub author: String,
     pub user: Option<User>,
     pub member: Option<Member>,
-    //Return "" if the content is null
     #[serde(default)]
     pub content: String,
     pub mentions: Option<Vec<String>>,
@@ -33,8 +34,9 @@ pub struct Message {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct  MessageAttachments {
-    pub _id: String,
+pub struct MessageAttachments {
+    #[serde(rename = "_id")]
+    pub id: String,
     pub tag: String,
     pub filename: String,
     pub metadata: MessageMetadata,
@@ -50,36 +52,13 @@ pub struct MessageMetadata {
     pub height: usize,
 }
 
-
-#[derive(Serialize)]
-pub struct SendMessagePayload {
-    pub content: String,
-    pub nonce: Option<String>,
-    pub attachments: Option<Vec<String>>,
-    pub replies: Option<Vec<Replies>>,
-    pub embeds: Option<Vec<SendableEmbed>>
-}
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Replies {
     pub id: String,
     pub mention: bool,
     pub fail_if_not_exists: Option<bool>,
 }
-#[derive(Debug, Default)]
-pub struct MessageBuilder {
-    pub content: Option<String>,
-    pub nonce: Option<String>,
-    pub attachments: Option<Vec<String>>,
-    pub replies: Option<Vec<Replies>>,
-    pub embeds: Option<Vec<SendableEmbed>>,
-}
 
-
-#[derive(Serialize, Default)]
-pub struct EditMessagePayload {
-    pub content: Option<String>,
-    pub embeds: Option<Vec<SendableEmbed>>,
-}
 impl Message {
     pub fn reply<'a>(&'a self, ctx: &'a Context) -> PendingSend<'a> {
         self.channel.send(ctx).replies(vec![
@@ -90,30 +69,22 @@ impl Message {
             }
         ])
     }
-    pub async fn delete(&self, ctx: &Context) -> Result<(), String> {
-        let url = format!("/channels/{}/messages/{}", self.channel, self.id);
-        let response = ctx.http.delete(url, None).await.map_err(|e| HttpError::from(e));
-        match response {
-            Ok(_) => Ok(()),
-            Err(e) => Err(format!("Failed to delete message: {}", e)),
-        }
+    pub async fn author(&self, ctx: &Context) -> Option<User> {
+        ctx.cache.users.get(&self.author).await
     }
-    pub async fn pin(&self, ctx: &Context) -> Result<(), HttpError> {
-        let url = format!("/channels/{}/messages/{}/pin", self.channel, self.id);
-        let response = ctx.http.post_empty(&url).await;
-        match response {
-            Ok(_) => Ok(()),
-            Err(e) => Err(HttpError::from(e)),
+
+    pub async fn fetch_author(&self, ctx: &Context) -> Result<User, HttpError> {
+        if let Some(user) = self.author(ctx).await {
+            return Ok(user);
         }
+
+        let user = ctx.http.fetch_user(&self.author).await?;
+
+        ctx.cache.users.insert(user.id.clone(), user.clone()).await;
+
+        Ok(user)
     }
-    pub async fn unpin(&self, ctx: &Context) -> Result<(), HttpError> {
-        let url = format!("/channels/{}/pins/{}", self.channel, self.id);
-        let response = ctx.http.delete(url, None).await;
-        match response {
-            Ok(_) => Ok(()),
-            Err(e) => Err(HttpError::from(e)),
-        }
-    }
+
     pub fn edit<'a>(&'a self, ctx: &'a Context) -> EditMessageBuilder<'a> {
         EditMessageBuilder {
             message: self,
@@ -121,8 +92,5 @@ impl Message {
             content: None,
             embeds: None,
         }
-    }
-    pub async fn fetch_message(&self, ctx: &Context) -> Result<Message, HttpError> {
-        self.channel.fetch_message(ctx, &self.id).await
     }
 }

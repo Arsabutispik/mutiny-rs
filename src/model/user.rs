@@ -1,19 +1,23 @@
 use serde::{Deserialize, Serialize};
+use crate::context::Context;
+use crate::http::HttpError;
+use crate::model::file::File;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct User {
-    pub _id: String,
-    pub username: String,
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub online: bool,
     pub discriminator: String,
-    pub display_name: Option<String>,
-    pub avatar: Option<Avatar>,
     pub relationship: Option<RelationshipStatus>,
+    pub username: String,
+    pub avatar: Option<File>,
     pub badges: Option<u8>,
-    pub status: Option<crate::model::ready::Status>,
+    pub bot: Option<Bot>,
+    pub display_name: Option<String>,
     pub flags: Option<usize>,
     pub privileged: Option<bool>,
-    pub bot: Option<Bot>,
-    pub online: bool,
+    pub status: Option<crate::model::ready::Status>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -42,7 +46,7 @@ pub struct Metadata {
 pub struct FetchUser {
     pub _id: String,
     pub username: String,
-    pub avatar: Option<Avatar>,
+    pub avatar: Option<File>,
     pub relationship: Option<RelationshipStatus>,
     pub badges: usize,
     pub status: Option<Status>,
@@ -59,21 +63,7 @@ pub struct Status {
     pub text: Option<String>,
     pub presence: Option<String>,
 }
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Avatar {
-    pub _id: String,
-    pub tag: String,
-    pub filename: String,
-    pub metadata: Metadata,
-    pub content_type: String,
-    pub size: usize,
-    pub deleted: Option<bool>,
-    pub reported: Option<bool>,
-    pub message_id: Option<String>,
-    pub user_id: Option<String>,
-    pub server_id: Option<String>,
-    pub object_id: Option<String>,
-}
+
 /// User's relationship with another user (or themselves)
 #[derive(Debug, Serialize, Deserialize, Default, PartialEq)]
 #[derive(Clone)]
@@ -93,4 +83,17 @@ pub enum RelationshipStatus {
     Blocked,
     /// Blocked by this user
     BlockedOther,
+}
+
+impl User {
+    pub async fn fetch_self(&self, ctx: &Context) -> Result<User, HttpError> {
+         ctx.http.get::<User>("/users/@me").await
+    }
+    pub async fn fetch_user(&self, ctx: &Context, id: String) -> Result<User, HttpError> {
+        let url = format!("/users/{}", id);
+        ctx.http.get::<User>(&url).await
+    }
+    pub fn to_string(&self) -> String {
+        format!("<@{}>", self.id)
+    }
 }

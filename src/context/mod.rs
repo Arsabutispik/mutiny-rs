@@ -1,3 +1,5 @@
+mod messages;
+
 use crate::http;
 use crate::model::user::User;
 use futures_util::stream::SplitSink;
@@ -6,29 +8,32 @@ use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 use tokio_tungstenite::tungstenite::Message as WsMessage;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
+use crate::client::ClientCache;
 
-#[derive(Clone, Debug)]
 pub struct Context {
     pub token: String,
     pub http: http::Http,
     pub json: serde_json::Value,
     writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, WsMessage>>>,
+    pub cache: ClientCache,
     pub bot: User,
 }
 
 impl Context {
     pub fn new(
         token: &str,
-        json: &str,
+        json: serde_json::Value,
         writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, WsMessage>>>,
         bot: User,
-    ) -> Context
+        cache: ClientCache,
+    ) -> Self
     {
-        Context  {
+        Self  {
             token: token.to_owned(),
             http: http::Http::new(token.to_owned()),
-            json: serde_json::from_str(json).unwrap(),
+            json,
             writer,
+            cache,
             bot,
         }
     }

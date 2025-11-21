@@ -1,6 +1,7 @@
 use super::user::{Metadata, User};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use crate::model::channel::Channel;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Ready {
@@ -21,21 +22,6 @@ pub struct MemberId {
 pub struct Member {
     pub _id: MemberId,
     pub joined_at: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Channel {
-    pub channel_type: String,
-    pub _id: String,
-    pub server: Option<String>,
-    pub name: Option<String>,
-    pub description: Option<String>,
-    pub icon: Option<Icon>,
-    pub role_permissions: Option<HashMap<String, usize>>,
-    pub active: Option<bool>,
-    pub recipients: Option<Vec<String>>,
-    pub default_permissions: Option<serde_json::Value>, // Error
-    pub last_message: Option<String>,
 }
 
 
