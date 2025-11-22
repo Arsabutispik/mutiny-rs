@@ -1,7 +1,8 @@
 use std::sync::Arc;
 use moka::future::Cache;
-use crate::{context::Context, model::message::Message, websocket::WebSocket};
+use crate::{context::Context, websocket::WebSocket};
 use crate::model::channel::Channel;
+use crate::model::message::Message;
 use crate::model::ready::Ready;
 use crate::model::user::User;
 

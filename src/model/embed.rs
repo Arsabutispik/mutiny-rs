@@ -1,6 +1,6 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type")] // Revolt distinguishes types by the "type" field
 pub enum Embed {
     /// Used for links and bot-created embeds
@@ -15,7 +15,7 @@ pub enum Embed {
     None,
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct WebsiteEmbed {
     pub url: Option<String>,
     pub title: Option<String>,
@@ -24,7 +24,7 @@ pub struct WebsiteEmbed {
     pub colour: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ImageEmbed {
     pub url: String,
     pub width: usize,
@@ -32,7 +32,7 @@ pub struct ImageEmbed {
     pub size: String, // "Large" or "Preview"
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct VideoEmbed {
     pub url: String,
     pub width: usize,

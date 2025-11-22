@@ -1,1 +1,1 @@
-Revolt API wrapper in Rust
+Stoat API wrapper in Rust

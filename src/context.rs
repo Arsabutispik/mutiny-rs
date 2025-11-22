@@ -1,5 +1,3 @@
-mod messages;
-
 use crate::http;
 use crate::model::user::User;
 use futures_util::stream::SplitSink;

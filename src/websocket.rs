@@ -1,15 +1,16 @@
 use std::{sync::Arc, time::{SystemTime, UNIX_EPOCH}};
 use std::time::Duration;
-use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
+use futures_util::{stream::{SplitSink, SplitStream}, SinkExt, StreamExt};
 use serde_json::json;
 use tokio::{net::TcpStream, spawn, sync::Mutex, task::JoinHandle};
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
+use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
 use tokio_tungstenite::tungstenite::Utf8Bytes;
 
 // Internal crate imports
 use crate::{client::EventHandler, context::Context, model::user::User};
-use crate::{model::{message::Message as ChatMessage, ready::Ready}};
+use crate::model::ready::Ready;
 use crate::client::ClientCache;
+use crate::model::message::Message as ChatMessage;
 use crate::model::user::RelationshipStatus;
 
 // Type aliases for readability

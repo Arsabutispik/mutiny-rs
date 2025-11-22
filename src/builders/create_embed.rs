@@ -24,9 +24,10 @@ pub struct SendableEmbed {
     pub media: Option<String>,
 }
 
-pub struct EmbedBuilder(SendableEmbed);
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct CreateEmbed(SendableEmbed);
 
-impl EmbedBuilder {
+impl CreateEmbed {
     pub fn new() -> Self {
         Self(SendableEmbed {
             kind: "Website".to_string(),
@@ -52,15 +53,5 @@ impl EmbedBuilder {
     pub fn icon(mut self, url: impl Into<String>) -> Self {
         self.0.icon_url = Some(url.into());
         self
-    }
-
-    pub fn build(self) -> SendableEmbed {
-        self.0
-    }
-}
-
-impl Default for EmbedBuilder {
-    fn default() -> Self {
-        Self::new()
     }
 }

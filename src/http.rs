@@ -1,7 +1,3 @@
-pub mod users;
-pub mod channels;
-pub mod messages;
-
 use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -96,7 +92,9 @@ impl Http {
     }
 
     pub async fn post<T: DeserializeOwned, B: Serialize>(&self, path: &str, body: &B) -> Result<T, HttpError> {
-        let url = format!("{}{}", self.base_url, path);
+        let base = self.base_url.trim_end_matches('/');
+        let path = path.trim_start_matches('/');
+        let url = format!("{}/{}", base, path);
         let response = self.client
             .post(&url)
             .header("x-bot-token", &self.token)
@@ -115,7 +113,9 @@ impl Http {
     }
 
     pub async fn patch<T: DeserializeOwned, B: Serialize>(&self, path: &str, body: &B) -> Result<T, HttpError> {
-        let url = format!("{}{}", self.base_url, path);
+        let base = self.base_url.trim_end_matches('/');
+        let path = path.trim_start_matches('/');
+        let url = format!("{}/{}", base, path);
         let response = self.client
             .patch(&url)
             .header("x-bot-token", &self.token)
@@ -133,15 +133,17 @@ impl Http {
         response.json::<T>().await.map_err(|e| HttpError::Other(format!("Parse Error: {}", e)))
     }
 
-    pub async fn delete(&self, path: &str) -> Result<(), HttpError> {
-        let url = format!("{}{}", self.base_url, path);
-        let response = self.client
+    pub async fn delete_with_query<Q: Serialize>(&self, path: &str, query: Option<&Q>) -> Result<(), HttpError> {
+        let base = self.base_url.trim_end_matches('/');
+        let path = path.trim_start_matches('/');
+        let url = format!("{}/{}", base, path);
+        let mut request = self.client
             .delete(&url)
-            .header("x-bot-token", &self.token)
-            .send()
-            .await
-            .map_err(HttpError::from)?;
-
+            .header("x-bot-token", &self.token);
+        if let Some(q) = query {
+            request = request.query(q);
+        }
+        let response = request.send().await.map_err(HttpError::from)?;
         let status = response.status();
 
         if !status.is_success() {
@@ -151,10 +153,16 @@ impl Http {
         }
         Ok(())
     }
+    pub async fn delete(&self, path: &str) -> Result<(), HttpError> {
+        // Pass generic unit type () as the query
+        self.delete_with_query::<()>(path, None).await
+    }
     /// Sends a POST request with no body, and expects no response body.
     /// Useful for actions like "Pin Message" or "Ack".
     pub async fn post_empty(&self, path: &str) -> Result<(), HttpError> {
-        let url = format!("{}{}", self.base_url, path);
+        let base = self.base_url.trim_end_matches('/');
+        let path = path.trim_start_matches('/');
+        let url = format!("{}/{}", base, path);
 
         let response = self.client
             .post(&url)

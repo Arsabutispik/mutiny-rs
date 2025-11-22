@@ -1,8 +1,9 @@
 use crate::builders::create_embed::SendableEmbed;
 use crate::context::Context;
 use crate::http::HttpError;
-use crate::model::message::Message;
 use serde::Serialize;
+use crate::model::message::Message;
+
 #[derive(Serialize, Default)]
 pub struct EditMessagePayload {
     pub content: Option<String>,
@@ -36,17 +37,10 @@ impl<'a> EditMessageBuilder<'a> {
         self
     }
 
-    pub async fn send(self) -> Result<Message, HttpError> {
+    pub async fn edit(self, body: EditMessagePayload) -> Result<Message, HttpError> {
         let url = format!("/channels/{}/messages/{}", self.message.channel, self.message.id);
-
-        let payload = EditMessagePayload {
-            content: self.content,
-            embeds: self.embeds,
-        };
-
-        let payload_json = serde_json::to_value(&payload)
-            .map_err(|e| HttpError::Other(format!("Failed to serialize payload: {}", e)))?;
-
-        self.ctx.http.patch(&url, &payload_json).await
+        let message = self.ctx.http.patch::<Message, EditMessagePayload>(&url, &body).await?;
+        self.ctx.cache.messages.insert(message.id.clone(), message.clone()).await;
+        Ok(message)
     }
 }
