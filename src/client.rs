@@ -73,7 +73,7 @@ impl ClientCache {
         }
 
         for channel in &ready.channels {
-            self.channels.insert(channel.id().to_string(), channel.clone()).await;
+            self.channels.insert(channel.id.to_string(), channel.clone()).await;
         }
 
         for _server in &ready.servers {

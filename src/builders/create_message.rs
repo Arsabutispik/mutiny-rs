@@ -70,7 +70,8 @@ impl CreateMessage {
         self.embeds = embeds;
         self
     }
-    pub async fn execute(self, http: &Http, channel_id: &ChannelId) -> Result<Message, HttpError> {
+    /// Sends the message
+    pub(crate) async fn execute(self, http: &Http, channel_id: &ChannelId) -> Result<Message, HttpError> {
         let route = format!("/channels/{channel_id}/messages");
         let response = http.post(&route, &self).await?;
         Ok(response)

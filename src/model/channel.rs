@@ -1,10 +1,13 @@
 use crate::builders::create_message::CreateMessage;
+use crate::builders::edit_channel::EditChannel;
 use crate::builders::fetch_messages::FetchMessagesBuilder;
 use crate::context::Context;
 use crate::http::HttpError;
 use crate::model::message::Message;
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use crate::error::Error;
+use crate::model::invite::Invite;
 
 /// A lightweight wrapper around a Channel ID string.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
@@ -65,11 +68,18 @@ impl ChannelId {
         };
         ctx.http.delete_with_query(&url, Some(&query)).await
     }
+    pub async fn edit(&self, ctx: &Context, builder: EditChannel) -> Result<Channel, HttpError> {
+        builder.execute(&ctx.http, self).await
+    }
     /// Attempt to get the [Channel] using cache.
-    /// Returns None if channel is not cached, use [Self::fetch()]
+    /// Returns [None] if channel is not cached, use [Self::fetch()]
     /// to get a [Channel] object
     pub async fn to_channel(&self, ctx: &Context) -> Option<Channel> {
         ctx.cache.channels.get(&self.0).await
+    }
+    pub async fn create_invite(&self, ctx: &Context) -> Result<Invite, HttpError> {
+        let url = format!("/channels/{}/invites", self.0);
+        ctx.http.post(&url, &()).await
     }
 }
 
@@ -92,57 +102,111 @@ impl From<String> for ChannelId {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "channel_type")]
-pub enum Channel {
+pub enum ChannelKind {
     SavedMessages(SavedMessages),
     DirectMessage(DirectMessage),
     Group(Group),
     TextChannel(TextChannel),
     VoiceChannel(VoiceChannel),
-}
 
+    #[serde(other)]
+    Unknown,
+}
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Channel {
+    #[serde(rename = "_id")]
+    pub id: ChannelId, // <--- ID IS NOW ALWAYS AVAILABLE
+
+    #[serde(flatten)]
+    pub kind: ChannelKind, // <--- The specific data lives here
+}
 impl Channel {
-    /// Get channel id
-    pub fn id(&self) -> &ChannelId {
-        match self {
-            Channel::SavedMessages(c) => &c.id,
-            Channel::DirectMessage(c) => &c.id,
-            Channel::Group(c) => &c.id,
-            Channel::TextChannel(c) => &c.id,
-            Channel::VoiceChannel(c) => &c.id,
-        }
-    }
-    /// Turn [Channel] to [ChannelId]
-    pub fn to_id(&self) -> ChannelId {
-        ChannelId(self.id().to_string())
+    pub async fn send_message(&self, ctx: &Context, builder: CreateMessage) -> Result<Message, HttpError> {
+        self.id.send_message(ctx, builder).await
     }
     pub fn server_id(&self) -> Option<&str> {
-        match self {
-            Channel::TextChannel(c) => Some(&c.server),
-            Channel::Group(c) => Some(&c.name),
-            Channel::VoiceChannel(c) => Some(&c.server),
-            _ => None,
-        }
-    }
-    pub fn name(&self) -> Option<&str> {
-        match self {
-            Channel::TextChannel(c) => Some(&c.name),
-            Channel::VoiceChannel(c) => Some(&c.name),
+        match &self.kind {
+            ChannelKind::TextChannel(c) => Some(&c.server),
+
+            ChannelKind::VoiceChannel(c) => Some(&c.server),
+
             _ => None,
         }
     }
 
+    pub fn name(&self) -> Option<&str> {
+        match &self.kind {
+            ChannelKind::TextChannel(c) => Some(&c.name),
+
+            ChannelKind::VoiceChannel(c) => Some(&c.name),
+
+            ChannelKind::Group(c) => Some(&c.name),
+
+            _ => None,
+        }
+    }
+    /// Get the channel as text
+    /// # Example
+    /// ```rust
+    /// if let Some(channel) = ctx.cache.channels.get(&message.channel.0).await {
+    ///     if let Some(text_channel) = channel.as_text() {
+    ///         println!("--- Text Channel: {} ---", text_channel.name);
+    ///     } else {
+    ///         println!("--- Not a Text Channel ---");
+    ///     }
+    /// }
+    /// ```
+    pub fn as_text(&self) -> Option<&TextChannel> {
+        match &self.kind {
+            ChannelKind::TextChannel(c) => Some(c), // 'c' is already a reference here
+            _ => None,
+        }
+    }
+
+    pub fn as_voice(&self) -> Option<&VoiceChannel> {
+        match &self.kind {
+            ChannelKind::VoiceChannel(c) => Some(c),
+            _ => None,
+        }
+    }
+
+    pub fn as_group(&self) -> Option<&Group> {
+        match &self.kind {
+            ChannelKind::Group(c) => Some(c),
+            _ => None,
+        }
+    }
+
+    pub fn as_dm(&self) -> Option<&DirectMessage> {
+        match &self.kind {
+            ChannelKind::DirectMessage(c) => Some(c),
+            _ => None,
+        }
+    }
+    pub async fn create_invite(&self, ctx: &Context) -> Result<Invite, Error> {
+        // Allow TextChannel OR Group
+        let is_allowed = matches!(
+            self.kind,
+            ChannelKind::TextChannel(_) | ChannelKind::Group(_)
+        );
+
+        if !is_allowed {
+            return Err(Error::InvalidChannelType(
+                "Invites can only be created for Text Channels or Groups".into()
+            ));
+        }
+
+        // Delegate to the ID logic (which sends the HTTP request)
+        self.id.create_invite(ctx).await.map_err(Error::from)
+    }
 }
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SavedMessages {
-    #[serde(rename = "_id")]
-    pub id: ChannelId,
     pub user: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct DirectMessage {
-    #[serde(rename = "_id")]
-    pub id: ChannelId,
     pub active: bool,
     pub recipients: Vec<String>,
     pub last_message: Option<Message>,
@@ -150,8 +214,6 @@ pub struct DirectMessage {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Group {
-    #[serde(rename = "_id")]
-    pub id: ChannelId,
     pub name: String,
     pub owner: String,
     pub recipients: Vec<String>,
@@ -161,8 +223,6 @@ pub struct Group {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TextChannel {
-    #[serde(rename = "_id")]
-    pub id: ChannelId,
     pub server: String,
     pub name: String,
     pub description: Option<String>,
@@ -173,8 +233,6 @@ pub struct TextChannel {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct VoiceChannel {
-    #[serde(rename = "_id")]
-    pub id: ChannelId,
     pub server: String,
     pub name: String,
     pub description: Option<String>,
