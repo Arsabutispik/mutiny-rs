@@ -9,6 +9,7 @@ use crate::model::ready::Member;
 use crate::model::user::User;
 use serde::{Deserialize, Serialize};
 use crate::builders::create_message::CreateMessage;
+use crate::http::routing::Route;
 
 #[derive(Serialize, Default, Debug, Clone)]
 pub struct SendMessageBody {
@@ -146,17 +147,17 @@ impl Message {
         self.channel.send_message(ctx, builder).await
     }
     pub async fn pin(&self, ctx: &Context) -> Result<(), HttpError> {
-        let url = format!("/channels/{}/messages/{}/pin", self.channel.0, self.id);
-        ctx.http.post_empty(&url).await
+        let route = Route::MessagePin { channel_id: &self.channel.0, message_id: &self.id };
+        ctx.http.request::<(), (), ()>(route, None, None).await
     }
     pub async fn unpin(&self, ctx: &Context) -> Result<(), HttpError> {
-        let url = format!("/channels/{}/messages/{}/pin", self.channel.0, self.id);
-        ctx.http.delete(&url).await
+        let route = Route::MessageUnpin { channel_id: &self.channel.0, message_id: &self.id };
+        ctx.http.request::<(), (), ()>(route, None, None).await
     }
     pub async fn delete(&self, ctx: &Context) -> Result<(), HttpError> {
-        let url = format!("/channels/{}/messages/{}", self.channel.0, self.id);
+        let route = Route::MessageDelete { channel_id: &self.channel.0, message_id: &self.id };
         ctx.cache.messages.remove(&self.id).await;
-        ctx.http.delete(&url).await
+        ctx.http.request::<(), (), ()>(route, None, None).await
     }
     pub fn edit<'a>(&'a self, ctx: &'a Context) -> EditMessageBuilder<'a> {
         EditMessageBuilder {

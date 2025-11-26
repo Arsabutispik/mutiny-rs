@@ -20,6 +20,7 @@ futures-util = "0.3.31"
 thiserror = "2.0.12"
 async-trait = "0.1.88"
 moka = { version = "0.12", features = ["future"] }
+bitflags = { version = "2.10.0", features = ["serde"]}
 
 [package.metadata.release]
 sign-commit = false

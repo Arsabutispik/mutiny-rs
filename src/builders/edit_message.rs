@@ -2,6 +2,7 @@ use crate::builders::create_embed::SendableEmbed;
 use crate::context::Context;
 use crate::http::HttpError;
 use serde::Serialize;
+use crate::http::routing::Route;
 use crate::model::message::Message;
 
 #[derive(Serialize, Default)]
@@ -38,8 +39,8 @@ impl<'a> EditMessageBuilder<'a> {
     }
 
     pub async fn edit(self, body: EditMessagePayload) -> Result<Message, HttpError> {
-        let url = format!("/channels/{}/messages/{}", self.message.channel, self.message.id);
-        let message = self.ctx.http.patch::<Message, EditMessagePayload>(&url, &body).await?;
+        let route = Route::EditMessage { channel_id: &self.message.channel.0, message_id: &self.message.id };
+        let message = self.ctx.http.execute::<EditMessagePayload, Message>(route, body).await?;
         self.ctx.cache.messages.insert(message.id.clone(), message.clone()).await;
         Ok(message)
     }
