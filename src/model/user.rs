@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use crate::context::Context;
 use crate::http::HttpError;
+use crate::http::routing::Route;
 use crate::model::file::File;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -87,11 +88,12 @@ pub enum RelationshipStatus {
 
 impl User {
     pub async fn fetch_self(&self, ctx: &Context) -> Result<User, HttpError> {
-         ctx.http.get::<User>("/users/@me").await
+        let route = Route::FetchMe;
+        ctx.http.get::<User>(route).await
     }
     pub async fn fetch_user(&self, ctx: &Context, id: String) -> Result<User, HttpError> {
-        let url = format!("/users/{}", id);
-        ctx.http.get::<User>(&url).await
+        let route = Route::FetchUser { user_id: &id };
+        ctx.http.get::<User>(route).await
     }
     pub fn to_string(&self) -> String {
         format!("<@{}>", self.id)

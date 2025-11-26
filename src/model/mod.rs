@@ -4,4 +4,6 @@ pub mod channel;
 pub mod embed;
 pub mod file;
 pub mod message;
-mod invite;
+pub mod invite;
+pub mod traits;
+pub mod permissions;

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use crate::context::Context;
 use crate::http::HttpError;
+use crate::http::routing::Route;
 use crate::model::message::Message;
 use crate::model::ready::Member;
 use crate::model::user::User;
@@ -86,9 +87,9 @@ impl<'a> FetchMessagesBuilder<'a> {
             include_users: self.include_users,
         };
 
-        let url = format!("/channels/{}/messages", self.channel_id);
+        let route = Route::FetchMessages { channel_id: &self.channel_id };
 
-        let result: MessageFetchResult = self.ctx.http.get_with_query(&url, &query).await?;
+        let result = self.ctx.http.request::<(), FetchMessagesQuery, MessageFetchResult>(route, None, Some(&query)).await?;
 
         let messages = match result {
             MessageFetchResult::MessagesOnly(list) => list,

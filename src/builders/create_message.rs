@@ -4,6 +4,7 @@ use crate::model::channel::ChannelId;
 use crate::model::message::Message;
 use crate::model::message::Replies;
 use serde::Serialize;
+use crate::http::routing::Route;
 
 #[derive(Debug, Default, Serialize)]
 pub struct CreateMessage {
@@ -72,8 +73,8 @@ impl CreateMessage {
     }
     /// Sends the message
     pub(crate) async fn execute(self, http: &Http, channel_id: &ChannelId) -> Result<Message, HttpError> {
-        let route = format!("/channels/{channel_id}/messages");
-        let response = http.post(&route, &self).await?;
+        let route = Route::SendMessage {channel_id: &channel_id.0 };
+        let response = http.request::<Self, (), Message>(route, Some(self), None).await?;
         Ok(response)
     }
 }

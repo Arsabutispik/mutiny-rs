@@ -2,12 +2,15 @@ use crate::builders::create_message::CreateMessage;
 use crate::builders::edit_channel::EditChannel;
 use crate::builders::fetch_messages::FetchMessagesBuilder;
 use crate::context::Context;
-use crate::http::HttpError;
 use crate::model::message::Message;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use crate::error::Error;
+use crate::http::HttpError;
+use crate::http::routing::Route;
 use crate::model::invite::Invite;
+use crate::model::permissions::Permissions;
+use crate::model::traits::{Nameable, ServerId};
 
 /// A lightweight wrapper around a Channel ID string.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
@@ -46,8 +49,8 @@ impl ChannelId {
                 return Ok(channel);
             }
         }
-        let url = format!("/channels/{}", self.0);
-        let channel = ctx.http.get::<Channel>(&url).await?;
+        let route = Route::GetChannel { channel_id: &self.0 };
+        let channel = ctx.http.get::<Channel>(route).await?;
 
         ctx.cache.channels.insert(self.0.clone(), channel.clone()).await;
 
@@ -58,15 +61,15 @@ impl ChannelId {
     /// [TextChannel] tries to delete the channel,
     /// [Group] leaves or closes a group
     pub async fn delete(&self, ctx: &Context, leave_silent: Option<bool>) -> Result<(), HttpError> {
-        #[derive(Serialize)]
+        #[derive(Serialize, Deserialize)]
         struct CloseQuery {
             leave_silently: bool,
         }
-        let url = format!("/channels/{}", self.0);
+        let route = Route::DeleteChannel { channel_id: &self.0 };
         let query = CloseQuery {
             leave_silently: leave_silent.unwrap_or(false),
         };
-        ctx.http.delete_with_query(&url, Some(&query)).await
+        ctx.http.request::<(), CloseQuery, ()>(route, None, Some(&query)).await
     }
     pub async fn edit(&self, ctx: &Context, builder: EditChannel) -> Result<Channel, HttpError> {
         builder.execute(&ctx.http, self).await
@@ -78,8 +81,8 @@ impl ChannelId {
         ctx.cache.channels.get(&self.0).await
     }
     pub async fn create_invite(&self, ctx: &Context) -> Result<Invite, HttpError> {
-        let url = format!("/channels/{}/invites", self.0);
-        ctx.http.post(&url, &()).await
+        let route = Route::CreateInvite { channel_id: &self.0 };
+        ctx.http.request::<(), (), Invite>(route, None, None).await
     }
 }
 
@@ -115,35 +118,14 @@ pub enum ChannelKind {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Channel {
     #[serde(rename = "_id")]
-    pub id: ChannelId, // <--- ID IS NOW ALWAYS AVAILABLE
+    pub id: ChannelId,
 
     #[serde(flatten)]
-    pub kind: ChannelKind, // <--- The specific data lives here
+    pub kind: ChannelKind,
 }
 impl Channel {
     pub async fn send_message(&self, ctx: &Context, builder: CreateMessage) -> Result<Message, HttpError> {
         self.id.send_message(ctx, builder).await
-    }
-    pub fn server_id(&self) -> Option<&str> {
-        match &self.kind {
-            ChannelKind::TextChannel(c) => Some(&c.server),
-
-            ChannelKind::VoiceChannel(c) => Some(&c.server),
-
-            _ => None,
-        }
-    }
-
-    pub fn name(&self) -> Option<&str> {
-        match &self.kind {
-            ChannelKind::TextChannel(c) => Some(&c.name),
-
-            ChannelKind::VoiceChannel(c) => Some(&c.name),
-
-            ChannelKind::Group(c) => Some(&c.name),
-
-            _ => None,
-        }
     }
     /// Get the channel as text
     /// # Example
@@ -200,6 +182,25 @@ impl Channel {
         self.id.create_invite(ctx).await.map_err(Error::from)
     }
 }
+impl Nameable for Channel {
+    fn name(&self) -> Option<&str> {
+        match &self.kind {
+            ChannelKind::TextChannel(c) => Some(&c.name),
+            ChannelKind::Group(c) => Some(&c.name),
+            ChannelKind::VoiceChannel(c) => Some(&c.name),
+            _ => None,
+        }
+    }
+}
+impl ServerId for Channel {
+    fn server_id(&self) -> Option<&str> {
+        match &self.kind {
+            ChannelKind::TextChannel(c) => Some(&c.server),
+            ChannelKind::VoiceChannel(c) => Some(&c.server),
+            _ => None,
+        }
+    }
+}
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SavedMessages {
     pub user: String,
@@ -217,7 +218,7 @@ pub struct Group {
     pub name: String,
     pub owner: String,
     pub recipients: Vec<String>,
-    pub permissions: Option<u64>,
+    pub permissions: Option<Permissions>,
     pub nsfw: Option<bool>,
 }
 
