@@ -9,7 +9,6 @@ repository = "https://github.com/arsabutispik/mutiny-rs"
 keywords = ["stoat", "chat", "api", "sdk", "rust"]
 categories = ["api-bindings", "web-programming", "asynchronous"]
 readme = "README.md"
-publish = false
 
 [dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
@@ -27,5 +26,6 @@ bitflags = { version = "2.10.0", features = ["serde"]}
 sign-commit = false
 sign-tag = false
 allow-branch = ["main", "master"]
+publish = false
 
 pre-release-hook = ["powershell", "-Command", "git cliff -o CHANGELOG.md --tag {{version}}; git add CHANGELOG.md"]
