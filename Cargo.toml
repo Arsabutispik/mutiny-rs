@@ -9,6 +9,7 @@ repository = "https://github.com/arsabutispik/mutiny-rs"
 keywords = ["stoat", "chat", "api", "sdk", "rust"]
 categories = ["api-bindings", "web-programming", "asynchronous"]
 readme = "README.md"
+publish = false
 
 [dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
