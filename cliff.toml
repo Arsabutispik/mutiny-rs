@@ -59,6 +59,8 @@ commit_parsers = [
 
     # Fallback for security fixes
     { body = ".*security", group = "🛡️ Security" },
+    # Fallback if any is missed
+    { body = ".*", group = "🔍 Other Changes"}
 ]
 
 # 3. Filtering
