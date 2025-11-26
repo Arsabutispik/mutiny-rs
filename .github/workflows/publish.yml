@@ -3,48 +3,45 @@ name: Publish to Crates.io
 on:
   push:
     tags:
-      - "v*" # Triggers on v0.1.0, v0.2.0, etc.
+      - "v*"
 
 jobs:
   publish:
     name: Publish Crate
     runs-on: ubuntu-latest
     steps:
-      # 1. Checkout Code
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Required for git-cliff to read history
+          fetch-depth: 0
 
-      # 2. Setup Rust
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      # 3. Generate Changelog (In-Memory/File)
-      # We generate the changelog here so it gets included in the crate file
-      - name: Update Changelog
+      # 3. Generate Release Notes (for the GitHub UI)
+      - name: Generate Release Notes
         uses: orhun/git-cliff-action@v4
         with:
-          config: cliff.toml # Or use cargo.toml if you moved config there
-          args: --verbose
+          config: cliff.toml
+          # --latest: Extract only the changes for the current tag
+          # --strip header: Remove the "Changelog" title
+          args: --latest --strip header
         env:
-          OUTPUT: CHANGELOG.md
+          OUTPUT: RELEASE_NOTES.md # Temp file, not the main changelog
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # 4. Publish to Crates.io
       - name: Publish to Crates.io
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        # We use --allow-dirty because we just modified CHANGELOG.md
-        # in the previous step but didn't commit it.
+        # We keep --allow-dirty just in case the RELEASE_NOTES.md file
+        # confuses cargo, though usually it's ignored.
         run: cargo publish --allow-dirty
 
-      # 5. Create GitHub Release (Optional but recommended)
-      # This puts the changelog on the GitHub Releases page too
+      # 5. Create GitHub Release
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          # We can regenerate the log just for this tag to put in the body
-          body_path: CHANGELOG.md
+          body_path: RELEASE_NOTES.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
