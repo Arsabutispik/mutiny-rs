@@ -1,6 +1,6 @@
 [package]
 name = "mutiny-rs"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2024"
 authors = ["İspik"]
 description = "A Rust API wrapper for the Stoat chat platform."
@@ -26,4 +26,4 @@ sign-commit = false
 sign-tag = false
 allow-branch = ["main", "master"]
 
-pre-release-hook = ["git", "cliff", "--config", "cliff.toml", "-o", "CHANGELOG.md", "--tag", "{{version}}"]
+pre-release-hook = ["powershell", "-Command", "git cliff -o CHANGELOG.md --tag {{version}}; git add CHANGELOG.md"]
