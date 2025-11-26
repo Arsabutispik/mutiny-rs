@@ -17,10 +17,10 @@ pub struct Invite {
     pub kind: InviteKind,
 }
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct Group {
+pub struct Group {
 
 }
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct ServerInvite {
+pub struct ServerInvite {
     pub server: String,
 }
