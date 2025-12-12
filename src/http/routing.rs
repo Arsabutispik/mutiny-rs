@@ -76,4 +76,12 @@ api_routes! {
 
     FetchUser       { user_id: &'a str }    => GET,    "/users/{}", user_id;
     EditUser        { user_id: &'a str }    => PATCH,  "/users/{}", user_id;
+    BlockUser       { user_id: &'a str }    => PUT,    "/users/{}/block", user_id;
+    FetchProfile    { user_id: &'a str }    => GET,    "/users/{}/profile", user_id;
+    FetchUserFlags  { user_id: &'a str }    => GET,    "/users/{}/flags", user_id;
+    FindMutual      { user_id: &'a str }    => GET,    "/users/{}/mutual", user_id;
+    GetDefaultAvatar { user_id: &'a str }   => GET,    "/users/{}/default", user_id;
+    OpenDM          { user_id: &'a str }    => GET,   "/users/{}/dm", user_id;
+    RemoveFriend    { user_id: &'a str }    => DELETE, "/users/{}/friend", user_id;
+    UnblockUser     { user_id: &'a str }    => DELETE, "/users/{}/block", user_id;
 }

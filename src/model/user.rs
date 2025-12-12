@@ -73,6 +73,15 @@ pub struct Relationship {
     /// Relationship status with them
     pub status: RelationshipStatus,
 }
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct UserProfile {
+    /// Text content on user's profile
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub content: Option<String>,
+    /// Background visible on user's profile
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub background: Option<File>,
+}
 #[derive(Debug, Serialize)]
 /// New user profile data
 pub struct DataUserProfile {
@@ -119,6 +128,21 @@ impl DataEditUser {
     pub fn new() -> Self {
         Self::default()
     }
+}
+/// Mutual friends and servers response
+#[derive(Default, Deserialize)]
+pub struct MutualResponse {
+    /// Array of mutual user IDs that both users are friends with
+    pub users: Vec<String>,
+    /// Array of mutual server IDs that both users are in
+    pub servers: Vec<String>,
+}
+
+#[derive(Default, Deserialize)]
+/// User flag repose
+pub struct FlagResponse {
+    /// Flags
+    pub flags: i32,
 }
 impl User {
     /// Turns the user object into a mentionable string
