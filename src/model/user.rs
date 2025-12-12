@@ -1,8 +1,5 @@
-use serde::{Deserialize, Serialize};
-use crate::context::Context;
-use crate::http::HttpError;
-use crate::http::routing::Route;
 use crate::model::file::File;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct User {
@@ -26,20 +23,20 @@ pub struct User {
     pub flags: u32,
     #[serde(skip_serializing_if = "crate::model::if_false", default)]
     pub privileged: bool,
-    pub status: Option<crate::model::ready::Status>,
+    pub status: Option<UserStatus>,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BotInformation {
     #[serde(rename = "owner")]
     pub owner_id: String,
 }
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Status {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct UserStatus {
     pub text: Option<String>,
     pub presence: Option<Presence>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Presence {
     Online,
     Idle,
@@ -49,8 +46,7 @@ pub enum Presence {
 }
 
 /// User's relationship with another user (or themselves)
-#[derive(Debug, Serialize, Deserialize, Default, PartialEq)]
-#[derive(Clone)]
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
 pub enum RelationshipStatus {
     /// No relationship with other user
     #[default]
@@ -77,15 +73,55 @@ pub struct Relationship {
     /// Relationship status with them
     pub status: RelationshipStatus,
 }
+#[derive(Debug, Serialize)]
+/// New user profile data
+pub struct DataUserProfile {
+    /// Text to set as user profile description
+    pub content: Option<String>,
+    /// Attachment ID for background
+    pub background: Option<String>,
+}
+#[derive(Debug, Serialize)]
+/// Optional fields on user object
+pub enum FieldsUser {
+    Avatar,
+    StatusText,
+    StatusPresence,
+    ProfileContent,
+    ProfileBackground,
+    DisplayName,
+
+    /// Internal field, ignore this.
+    Internal,
+}
+#[derive(Default, Serialize)]
+pub struct DataEditUser {
+    /// New display name
+    pub display_name: Option<String>,
+    /// Attachment Id for avatar
+    pub avatar: Option<String>,
+    /// New user status
+    pub status: Option<UserStatus>,
+    /// New user profile data
+    ///
+    /// This is applied as a partial.
+    pub profile: Option<DataUserProfile>,
+
+    /// Bitfield of user badges
+    pub badges: Option<i32>,
+    /// Enum of user flags
+    pub flags: Option<i32>,
+
+    /// Fields to remove from user object
+    pub remove: Option<Vec<FieldsUser>>,
+}
+impl DataEditUser {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
 impl User {
-    pub async fn fetch_self(&self, ctx: &Context) -> Result<User, HttpError> {
-        let route = Route::FetchMe;
-        ctx.http.get::<User>(route).await
-    }
-    pub async fn fetch_user(&self, ctx: &Context, id: String) -> Result<User, HttpError> {
-        let route = Route::FetchUser { user_id: &id };
-        ctx.http.get::<User>(route).await
-    }
+    /// Turns the user object into a mentionable string
     pub fn to_string(&self) -> String {
         format!("<@{}>", self.id)
     }
