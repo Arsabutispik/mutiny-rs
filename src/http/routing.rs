@@ -16,10 +16,11 @@ macro_rules! api_routes {
         }
 
         impl<'a> Route<'a> {
+            #[allow(unused_variables)]
             pub fn method(&self) -> Method {
                 match self {
-                    $
-                        Self::$variant $( { $($arg: _),* } )? => Method::$method,
+                    $(
+                        Self::$variant $( { $($arg),* } )? => Method::$method,
                     )*
                 }
             }
@@ -34,7 +35,6 @@ macro_rules! api_routes {
         }
     };
 }
-
 api_routes! {
     // --- Channel Operations ---
     GetChannel      { channel_id: &'a str } => GET,    "/channels/{}", channel_id;
