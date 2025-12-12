@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1] - 2025-12-12
+
+### 🐛 Bug Fixes
+
+- Macro syntax errors ([3f86bc6](https://github.com/arsabutispik/mutiny-rs/commit/3f86bc63a75c0f662580fed113fbb4e1aadd4671))
+
 ## [0.5.0] - 2025-12-12
 
 ### 🔍 Other Changes
