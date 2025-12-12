@@ -17,6 +17,7 @@ pub enum Route<'a> {
     MessageDelete { channel_id: &'a str, message_id: &'a str },
     FetchMe,
     FetchUser { user_id: &'a str },
+    EditUser { user_id: &'a str },
 }
 
 impl<'a> Route<'a> {
@@ -36,6 +37,7 @@ impl<'a> Route<'a> {
             Route::MessageDelete {channel_id, message_id} => format!("/channels/{}/messages/{}", channel_id, message_id),
             Route::FetchMe => "/users/@me".to_string(),
             Route::FetchUser { user_id } => format!("/users/{}", user_id),
+            Route::EditUser { user_id } => format!("/users/{}", user_id),
         }
     }
 
@@ -55,6 +57,7 @@ impl<'a> Route<'a> {
             Route::MessageDelete { .. } => Method::DELETE,
             Route::FetchMe => Method::GET,
             Route::FetchUser { .. } => Method::GET,
+            Route::EditUser { .. } => Method::PATCH,
         }
     }
 }

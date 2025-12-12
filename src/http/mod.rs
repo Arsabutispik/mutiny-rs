@@ -1,4 +1,5 @@
 pub mod routing;
+mod user;
 
 use crate::http::routing::Route;
 use reqwest::StatusCode;
@@ -31,7 +32,7 @@ pub enum HttpError {
 }
 
 #[derive(Clone, Debug)]
-pub struct Http {
+pub struct HttpClient {
     pub(crate) client: reqwest::Client,
     pub(crate) base_url: String,
     pub(crate) token: String,
@@ -39,9 +40,9 @@ pub struct Http {
 
 pub const BASE_URL: &str = "https://api.revolt.chat";
 
-impl Http {
+impl HttpClient {
     pub fn new(token: String) -> Self {
-        Http {
+        HttpClient {
             client: reqwest::Client::new(),
             base_url: BASE_URL.to_string(),
             token,
