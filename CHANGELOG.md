@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2025-12-12
+
+### 🔍 Other Changes
+
+- Merge pull request #2
+
+* feat: Properly define structs for user model
+
+* fix: remove debugging logging
+
+* fix: Rename Http to HttpClient
+
+* feat: Add edit_user functionality
+
+* feat: Add fetch_dms ([1e495e9](https://github.com/arsabutispik/mutiny-rs/commit/1e495e923f2a49c27309336fdd8b0f33e9b07dbc))
+
+### 🚀 Features
+
+- Use macro for routing to simplify routes ([3b30238](https://github.com/arsabutispik/mutiny-rs/commit/3b302383ec9afab882cc9b2bee536e3d057f5c39))
+
 ## [0.4.0] - 2025-11-26
 
 ### 🚜 Refactor
