@@ -18,6 +18,7 @@ pub enum Route<'a> {
     FetchMe,
     FetchUser { user_id: &'a str },
     EditUser { user_id: &'a str },
+    FetchDMs,
 }
 
 impl<'a> Route<'a> {
@@ -38,6 +39,7 @@ impl<'a> Route<'a> {
             Route::FetchMe => "/users/@me".to_string(),
             Route::FetchUser { user_id } => format!("/users/{}", user_id),
             Route::EditUser { user_id } => format!("/users/{}", user_id),
+            Route::FetchDMs => "/dms/".to_string(),
         }
     }
 
@@ -58,6 +60,7 @@ impl<'a> Route<'a> {
             Route::FetchMe => Method::GET,
             Route::FetchUser { .. } => Method::GET,
             Route::EditUser { .. } => Method::PATCH,
+            Route::FetchDMs => Method::GET,
         }
     }
 }
