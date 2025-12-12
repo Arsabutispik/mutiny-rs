@@ -105,9 +105,8 @@ impl WebSocket {
                         "Ready" => {
                             match serde_json::from_value::<Ready>(json_value.clone()) {
                                 Ok(ready) => {
-
                                     bot = ready.users.iter()
-                                        .find(|u| u.relationship == Some(RelationshipStatus::User))
+                                        .find(|u| u.relationship == RelationshipStatus::User)
                                         .cloned();
 
                                     if bot.is_none() {

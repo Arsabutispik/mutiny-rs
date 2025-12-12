@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::http::{Http, HttpError};
+use crate::http::{HttpClient, HttpError};
 use crate::http::routing::Route;
 use crate::model::channel::{Channel, ChannelId};
 
@@ -68,7 +68,7 @@ impl EditChannel {
         self.remove = remove;
         self
     }
-    pub(crate) async fn execute(self, http: &Http, channel_id: &ChannelId) -> Result<Channel, HttpError> {
+    pub(crate) async fn execute(self, http: &HttpClient, channel_id: &ChannelId) -> Result<Channel, HttpError> {
         let route = Route::EditChannel { channel_id: &channel_id.0 };
         let response = http.execute::<Self, Channel>(route, self).await?;
         Ok(response)
