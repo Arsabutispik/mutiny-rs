@@ -1,7 +1,8 @@
-use super::user::{Metadata, User};
+use super::user::User;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use crate::model::channel::Channel;
+use crate::model::file::Metadata;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Ready {

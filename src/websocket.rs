@@ -103,11 +103,11 @@ impl WebSocket {
                 if let Some(event_type) = json_value["type"].as_str() {
                     match event_type {
                         "Ready" => {
+                            println!("Ready: {:?}", json_value);
                             match serde_json::from_value::<Ready>(json_value.clone()) {
                                 Ok(ready) => {
-
                                     bot = ready.users.iter()
-                                        .find(|u| u.relationship == Some(RelationshipStatus::User))
+                                        .find(|u| u.relationship == RelationshipStatus::User)
                                         .cloned();
 
                                     if bot.is_none() {

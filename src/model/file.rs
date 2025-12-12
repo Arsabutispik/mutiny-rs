@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use crate::model::user::Metadata;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct File {
@@ -16,4 +15,21 @@ pub struct File {
     pub user_id: Option<String>,
     pub server_id: Option<String>,
     pub object_id: Option<String>,
+}
+
+/// Metadata associated with a file
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(tag = "type")]
+pub enum Metadata {
+    /// File is just a generic uncategorized file
+    #[default]
+    File,
+    /// File contains textual data and should be displayed as such
+    Text,
+    /// File is an image with specific dimensions
+    Image { width: usize, height: usize },
+    /// File is a video with specific dimensions
+    Video { width: usize, height: usize },
+    /// File is audio
+    Audio,
 }
